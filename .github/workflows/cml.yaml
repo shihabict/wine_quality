@@ -1,24 +1,23 @@
-name: model-wine-quality-detection
+name: CML
 on: [push]
 jobs:
-  run:
+  train-and-report:
+    permissions: write-all
     runs-on: ubuntu-latest
-    # optionally use a convenient Ubuntu LTS + DVC + CML image
-    container: ghcr.io/iterative/cml:0-dvc2-base1
+    container: docker://ghcr.io/iterative/cml:0-dvc2-base1
     steps:
       - uses: actions/checkout@v3
-      - uses: iterative/setup-cml@v1
-      - name: cml_train
+      - name: Train model
         env:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
         
-          # Your ML workflow goes here
-          sudo -H pip3 install -r requirements.txt
-          python train.py
-          echo "## MODEL METRICS" > report.md
-          cat metrics.txt >> report.md
-          
-          cml-send-comment report.md
+          pip install -r requirements.txt
+          python train.py  # generate plot.png
 
-          
+          # Create CML report
+          cat metrics.txt >> report.md
+          echo '![](./plot.png "Confusion Matrix")' >> report.md
+          cml publish ./feature_importance.png --md >> report.md
+          cml publish ./residuals.png --md >> report.md
+          cml comment create report.md
